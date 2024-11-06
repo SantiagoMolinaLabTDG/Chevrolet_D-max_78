@@ -1,1 +1,89 @@
+#include <iostream>
+#include <vector>
+#include <cstdlib>  // Para generar números aleatorios (simulación)
 
+// Clase Inyector
+class Inyector {
+public:
+    Inyector(int id, float flujo_max) : id(id), flujo_max(flujo_max), abierto(false), flujo_actual(0.0) {}
+
+    void abrir(float flujo) {
+        abierto = true;
+        flujo_actual = std::min(flujo, flujo_max);
+        std::cout << "Inyector " << id << " abierto: " << flujo_actual << " ml/s" << std::endl;
+    }
+
+    void cerrar() {
+        abierto = false;
+        flujo_actual = 0.0;
+        std::cout << "Inyector " << id << " cerrado" << std::endl;
+    }
+
+private:
+    int id;
+    float flujo_max;    // Máximo flujo de combustible que el inyector puede permitir (en ml/s)
+    bool abierto;
+    float flujo_actual;
+};
+
+// Clase ECU
+class ECU {
+public:
+    ECU(std::vector<Inyector>& inyectores) : inyectores(inyectores), rpm(0), carga_motor(0.0) {}
+
+    void actualizarSensores() {
+        // Simulación de lectura de sensores: RPM y carga del motor
+        rpm = rand() % 3000 + 700;              // RPM entre 700 y 3700
+        carga_motor = (rand() % 80 + 20) / 100.0; // Carga entre 20% y 100%
+    }
+
+    float calcularFlujoInyeccion() const {
+        // Cálculo de flujo basado en RPM y carga del motor
+        float flujo_base = 2.0;  // Flujo base (ml/s) para un inyector en condiciones estándar
+        float ajuste_rpm = static_cast<float>(rpm) / 3000;
+        return flujo_base * ajuste_rpm * carga_motor;
+    }
+
+    void controlarInyectores() {
+        float flujo_requerido = calcularFlujoInyeccion();
+        std::cout << "RPM: " << rpm << ", Carga del motor: " << carga_motor * 100 << "%, "
+                  << "Flujo requerido: " << flujo_requerido << " ml/s" << std::endl;
+
+        for (auto& inyector : inyectores) {
+            if (flujo_requerido > 0) {
+                inyector.abrir(flujo_requerido);
+            } else {
+                inyector.cerrar();
+            }
+        }
+    }
+
+    void ejecutarCiclo() {
+        actualizarSensores();
+        controlarInyectores();
+    }
+
+private:
+    std::vector<Inyector>& inyectores;
+    int rpm;
+    float carga_motor;
+};
+
+int main() {
+    // Inicialización de 4 inyectores con flujo máximo de 5 ml/s cada uno
+    std::vector<Inyector> inyectores;
+    for (int i = 0; i < 4; ++i) {
+        inyectores.emplace_back(i + 1, 5.0); // ID del inyector y flujo máximo
+    }
+
+    // Crear la ECU
+    ECU ecu(inyectores);
+
+    // Simulación de ciclos de inyección
+    for (int i = 0; i < 10; ++i) { // Ejecuta 10 ciclos de simulación
+        ecu.ejecutarCiclo();
+        std::cout << "-------------------" << std::endl;
+    }
+
+    return 0;
+}
